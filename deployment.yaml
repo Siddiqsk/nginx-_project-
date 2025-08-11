@@ -1,34 +1,22 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: webapp
-  labels:
-    app: webapp
-spec:
-  ports:
-  - port: 5173
-    name: http
-  selector:
-    app: webapp
----
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: webapp
+  name: angular-deployment
+  namespace: webapp-prod
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: webapp
+      app: angular
   template:
     metadata:
       labels:
-        app: webapp
+        app: angular
     spec:
       containers:
-      - name: webapp
-        image:  angularproject.azurecr.io/angular-app1:0.0.1
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 5173
+      - name: angular-container
+        image: angularproject.azurecr.io/angular-app1:0.0.1
 
+        ports:
+        - containerPort: 80
