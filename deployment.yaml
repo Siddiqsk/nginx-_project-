@@ -53,7 +53,7 @@ jobs:
   steps:
   - script: |
       # Update deployment.yaml image to the new image
-    sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
+      sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
 
       # Apply deployment and service
       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
