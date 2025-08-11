@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: webapp
-        image:  angularapplication.azurecr.io/angular-app:0.0.2
+        image:  angularproject.azurecr.io/angular-app1:0.0.1
         imagePullPolicy: Always
         ports:
         - containerPort: 5173
