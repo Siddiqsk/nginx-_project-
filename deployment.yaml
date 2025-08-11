@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,6 +15,5 @@ spec:
       containers:
       - name: angular-container
         image: angularproject.azurecr.io/angular-app1:0.0.1
-
         ports:
         - containerPort: 80
