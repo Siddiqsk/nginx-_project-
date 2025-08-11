@@ -15,12 +15,15 @@ stages:
   jobs:
   - deployment: DeployAngular
     displayName: 'Deploy Angular app'
-    environment: 'aks'
+    environment: 'aks1'
     strategy:
       runOnce:
         deploy:
           steps:
           - checkout: self
+
+- script: ls -l
+  displayName: 'List files in repo root'
 
           - task: Kubernetes@1
             inputs:
