@@ -1,39 +1,31 @@
+
 trigger:
   branches:
     include:
       - main
-
-pool:
-  name: agentpool1
-  demands:
-    - agent.os -equals Linux
-
-
+ 
 stages:
-- stage: Deploy
-  displayName: Deploy Angular app to AKS
-  jobs:
-  - deployment: DeployAngular
-    displayName: 'Deploy Angular app'
-    environment: 'aks1'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - checkout: self
-
-
-          - task: Kubernetes@1
+  - stage: Deploy
+    jobs:
+      - job: DeployToK8s
+        displayName: Deploy to Kubernetes
+        pool:
+          name: agentpool1
+        steps:
+          - script: |
+              echo "Debugging files:"
+              ls -l $(Build.SourcesDirectory)
+            displayName: "List Source Directory"
+ 
+          - task: KubernetesManifest@0
+            displayName: Deploy to AKS
             inputs:
-              connectionType: 'Kubernetes Service Connection'
-              # kubernetesServiceEndpoint: 'aks1'   # Your AKS service connection name
-              namespace: 'default'
-              command: 'apply'
-              useConfigurationFile: true
-              configuration: |
-                deployment.yaml
-                service.yaml
-
+              action: deploy
+              kubernetesServiceConnection: 'aks1'
+              namespace: default
+              manifests: |
+                $(Build.SourcesDirectory)/deployment.yaml
+                $(Build.SourcesDirectory)/service.yaml
 
 
 
