@@ -1,36 +1,89 @@
-# trigger:
-#   branches:
-#     include:
-#       - main
+# # trigger:
+# #   branches:
+# #     include:
+# #       - main
  
-# stages:
-#   - stage: Deploy
-#     jobs:
-#       - job: DeployToK8s
-#         displayName: Deploy to Kubernetes
-#         pool:
-#           name: agentpool1
-#         steps:
-#           - script: |
-#               echo "Debugging files:"
-#               ls -l $(Build.SourcesDirectory)
-#             displayName: "List Source Directory"
+# # stages:
+# #   - stage: Deploy
+# #     jobs:
+# #       - job: DeployToK8s
+# #         displayName: Deploy to Kubernetes
+# #         pool:
+# #           name: agentpool1
+# #         steps:
+# #           - script: |
+# #               echo "Debugging files:"
+# #               ls -l $(Build.SourcesDirectory)
+# #             displayName: "List Source Directory"
  
-#           - task: KubernetesManifest@0
-#             displayName: Deploy to AKS
-#             inputs:
-#               action: deploy
-#               kubernetesServiceConnection: 'aks1'
-#               namespace: default
-#               manifests: |
-#                  $(Build.SourcesDirectory)/deployment.yaml 
-#                  $(Build.SourcesDirectory)/service.yaml
+# #           - task: KubernetesManifest@0
+# #             displayName: Deploy to AKS
+# #             inputs:
+# #               action: deploy
+# #               kubernetesServiceConnection: 'aks1'
+# #               namespace: default
+# #               manifests: |
+# #                  $(Build.SourcesDirectory)/deployment.yaml 
+# #                  $(Build.SourcesDirectory)/service.yaml
 
 
 
 
 
                 
+
+
+# trigger:
+#   branches:
+#     include:
+#       - main
+
+# variables:
+#   dockerHubRepo: siddiqkesavansk/nginx
+#   imageTag: latest
+
+# jobs:
+# - job: BuildAndPush
+#   displayName: Build & Push Docker Image to Docker Hub
+#   pool:
+#     vmImage: 'ubuntu-latest'
+#   steps:
+#   - task: Docker@2
+#     displayName: Build and push Docker image
+#     inputs:
+#       containerRegistry: 'dockerhub'   # Your Docker Hub service connection in Azure DevOps
+#       repository: $(dockerHubRepo)
+#       command: buildAndPush
+#       Dockerfile: Dockerfile
+#       tags: |
+#         $(imageTag)
+
+# - job: DeployToK8s
+#   dependsOn: BuildAndPush
+#   displayName: Deploy to Kubernetes
+#   pool:
+#     name: agentpool1   # Your self-hosted or hosted agent pool with kubectl configured
+#   steps:
+#   - script: |
+#       # Update deployment.yaml image to the new image
+#       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
+
+#       # Apply deployment and service
+#       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
+#       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
+#     displayName: Deploy updated manifests to Kubernetes
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 trigger:
@@ -43,32 +96,26 @@ variables:
   imageTag: latest
 
 jobs:
-- job: BuildAndPush
-  displayName: Build & Push Docker Image to Docker Hub
+- job: BuildPushAndDeploy
+  displayName: Build, Push Docker Image and Deploy to Kubernetes
   pool:
-    vmImage: 'ubuntu-latest'
+    name: agentpool1   # Your agent pool with Docker and kubectl installed/configured
   steps:
   - task: Docker@2
     displayName: Build and push Docker image
     inputs:
-      containerRegistry: 'dockerhub'   # Your Docker Hub service connection in Azure DevOps
+      containerRegistry: 'dockerhub'   # Your Docker Hub service connection
       repository: $(dockerHubRepo)
       command: buildAndPush
       Dockerfile: Dockerfile
       tags: |
         $(imageTag)
 
-- job: DeployToK8s
-  dependsOn: BuildAndPush
-  displayName: Deploy to Kubernetes
-  pool:
-    name: agentpool1   # Your self-hosted or hosted agent pool with kubectl configured
-  steps:
   - script: |
       # Update deployment.yaml image to the new image
       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
 
-      # Apply deployment and service
+      # Apply deployment and service manifests
       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
     displayName: Deploy updated manifests to Kubernetes
