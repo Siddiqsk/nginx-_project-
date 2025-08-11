@@ -23,7 +23,7 @@ stages:
             displayName: 'Apply Kubernetes manifests'
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceEndpoint: 'angular_project'   # Your AKS service connection name
+              kubernetesServiceEndpoint: 'aks1'   # Your AKS service connection name
               namespace: 'default'
               command: 'apply'
               useConfigurationFile: true
