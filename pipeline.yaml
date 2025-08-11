@@ -23,7 +23,6 @@ stages:
           - checkout: self
 
           - task: Kubernetes@1
-            displayName: 'Apply Kubernetes manifests'
             inputs:
               connectionType: 'Kubernetes Service Connection'
               kubernetesServiceEndpoint: 'aks1'   # Your AKS service connection name
@@ -33,3 +32,8 @@ stages:
               configuration: |
                 deployment.yaml
                 service.yaml
+
+
+                
+
+
