@@ -1,19 +1,61 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: angular-deployment
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: angular
-  template:
-    metadata:
-      labels:
-        app: angular
-    spec:
-      containers:
-      - name: angular-container
-        image: angularproject.azurecr.io/angular-app1:0.0.1
-        ports:
-        - containerPort: 80
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: angular-deployment
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: angular
+#   template:
+#     metadata:
+#       labels:
+#         app: angular
+#     spec:
+#       containers:
+#       - name: angular-container
+#         image: angularproject.azurecr.io/angular-app1:0.0.1
+#         ports:
+#         - containerPort: 80
+
+
+
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  dockerHubRepo: siddiqkesavansk/nginx
+  imageTag: latest
+
+jobs:
+- job: BuildAndPush
+  displayName: Build & Push Docker Image to Docker Hub
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: Docker@2
+    displayName: Build and push Docker image
+    inputs:
+      containerRegistry: 'dockerhub'   # Your Docker Hub service connection in Azure DevOps
+      repository: $(dockerHubRepo)
+      command: buildAndPush
+      Dockerfile: Dockerfile
+      tags: |
+        $(imageTag)
+
+- job: DeployToK8s
+  dependsOn: BuildAndPush
+  displayName: Deploy to Kubernetes
+  pool:
+    name: agentpool1   # Your self-hosted or hosted agent pool with kubectl configured
+  steps:
+  - script: |
+      # Update deployment.yaml image to the new image
+    sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
+
+      # Apply deployment and service
+      kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
+      kubectl apply -f $(Build.SourcesDirectory)/service.yaml
+    displayName: Deploy updated manifests to Kubernetes
