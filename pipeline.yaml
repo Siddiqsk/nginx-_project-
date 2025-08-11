@@ -25,7 +25,7 @@ stages:
               namespace: webapp-prod
               manifests: |
                  $(Build.SourcesDirectory)/deployment.yaml 
-                $(Build.SourcesDirectory)/service.yaml
+                 $(Build.SourcesDirectory)/service.yaml
 
 
 
