@@ -22,7 +22,7 @@ stages:
             inputs:
               action: deploy
               kubernetesServiceConnection: 'aks1'
-              namespace: default
+              namespace: webapp-prod
               manifests: |
                 $(Build.SourcesDirectory)/deployment.yaml
                 $(Build.SourcesDirectory)/service.yaml
