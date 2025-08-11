@@ -26,7 +26,7 @@ stages:
           - task: Kubernetes@1
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceEndpoint: 'aks1'   # Your AKS service connection name
+              # kubernetesServiceEndpoint: 'aks1'   # Your AKS service connection name
               namespace: 'default'
               command: 'apply'
               useConfigurationFile: true
