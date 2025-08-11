@@ -24,8 +24,9 @@ stages:
               kubernetesServiceConnection: 'aks1'
               namespace: webapp-prod
               manifests: |
-                $(Build.SourcesDirectory)/k8s/deployment.yaml
-                $(Build.SourcesDirectory)/k8s/service.yaml
+                 $(Build.SourcesDirectory)/deployment.yaml
+                $(Build.SourcesDirectory)/service.yaml
+
 
 
 
