@@ -4,7 +4,10 @@ trigger:
       - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: agentpool1
+  demands:
+    - agent.os -equals Linux
+
 
 stages:
 - stage: Deploy
