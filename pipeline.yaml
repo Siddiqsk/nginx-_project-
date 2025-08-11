@@ -1,4 +1,3 @@
-
 trigger:
   branches:
     include:
@@ -22,7 +21,7 @@ stages:
             inputs:
               action: deploy
               kubernetesServiceConnection: 'aks1'
-              namespace: webapp-prod
+              namespace: default
               manifests: |
                  $(Build.SourcesDirectory)/deployment.yaml 
                  $(Build.SourcesDirectory)/service.yaml
