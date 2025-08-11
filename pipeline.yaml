@@ -22,8 +22,6 @@ stages:
           steps:
           - checkout: self
 
-- script: ls -l
-  displayName: 'List files in repo root'
 
           - task: Kubernetes@1
             inputs:
