@@ -161,14 +161,14 @@ jobs:
 
   # Deploy to Kubernetes
   - task: Kubectl@1
-  inputs:
-    connectionType: 'Kubernetes Service Connection'
-    kubernetesServiceEndpoint: '<your-k8s-service-connection-name>'
-    command: apply
-    useConfigurationFile: true
-    configuration: |
-      $(Build.SourcesDirectory)/deployment.yaml
-      $(Build.SourcesDirectory)/service.yaml
-  displayName: Deploy to Kubernetes
+    inputs:
+      connectionType: 'Kubernetes Service Connection'
+      kubernetesServiceEndpoint: '<your-k8s-service-connection-name>'
+      command: apply
+      useConfigurationFile: true
+      configuration: |
+        $(Build.SourcesDirectory)/deployment.yaml
+        $(Build.SourcesDirectory)/service.yaml
+    displayName: Deploy to Kubernetes
 
 
