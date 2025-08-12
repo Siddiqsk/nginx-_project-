@@ -128,6 +128,8 @@
 #       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
 #     displayName: Deploy updated manifests to Kubernetes
 
+
+
 trigger:
   branches:
     include:
@@ -146,33 +148,21 @@ jobs:
   steps:
   - checkout: self
 
-  - script: |
-      # Install Docker CLI & Buildx plugin
-      curl -fsSL https://get.docker.com -o get-docker.sh
-      sh get-docker.sh
-      mkdir -p ~/.docker/cli-plugins
-      curl -L https://github.com/docker/buildx/releases/latest/download/buildx-linux.amd64 -o ~/.docker/cli-plugins/docker-buildx
-      chmod +x ~/.docker/cli-plugins/docker-buildx
+  # Build and push Docker image using Docker Hub service connection
+  - task: Docker@2
+    displayName: Build and Push Docker Image
+    inputs:
+      containerRegistry: 'dockerhub'    # Replace with your service connection name exactly
+      repository: $(dockerHubRepo)
+      command: buildAndPush
+      Dockerfile: Dockerfile
+      tags: |
+        $(imageTag)
 
-      docker --version
-      docker buildx version
-    displayName: Install Docker and Buildx CLI
-
-  - script: |
-      docker buildx create --use
-      docker buildx inspect --bootstrap
-    displayName: Enable Docker Buildx
-
-  - script: |
-      docker buildx build \
-        --platform linux/amd64 \
-        -f $(Build.SourcesDirectory)/Dockerfile \
-        -t $(dockerHubRepo):$(imageTag) \
-        --push $(Build.SourcesDirectory)
-    displayName: Build and Push Docker Image with Buildx
-
+  # Deploy to Kubernetes
   - script: |
       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
-    displayName: Deploy updated manifests to Kubernetes
+    displayName: Deploy to Kubernetes
+
