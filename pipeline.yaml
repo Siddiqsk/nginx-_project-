@@ -174,7 +174,7 @@ jobs:
       cat $(Build.SourcesDirectory)/deployment.yaml
     displayName: Show deployment.yaml after sed
 
-  - task: KubernetesManifest@0
+  - task: KubernetesManifest@1
     displayName: Deploy to AKS
     inputs:
       action: deploy
