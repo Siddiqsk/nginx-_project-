@@ -129,35 +129,6 @@
 #     displayName: Deploy updated manifests to Kubernetes
 
 
-
-trigger:
-  branches:
-    include:
-      - main
-
-variables:
-  dockerHubRepo: siddiqkesavansk/nginx
-  imageTag: latest
-
-jobs:
-- job: BuildPushAndPush
-  displayName: Build and Push Docker Image
-  pool:
-    name: agentpool1
-
-  steps:
-  - checkout: self
-
-  - task: Docker@2
-    displayName: Build and Push Docker Image
-    inputs:
-      containerRegistry: 'dockerhub'    # Your Docker Hub service connection name
-      repository: $(dockerHubRepo)
-      command: buildAndPush
-      Dockerfile: Dockerfile
-      tags: |
-        $(imageTag)
-
 - job: DeployToK8s
   displayName: Deploy to Kubernetes
   dependsOn: BuildPushAndPush
@@ -166,18 +137,29 @@ jobs:
 
   steps:
   - script: |
+      echo "Showing deployment.yaml BEFORE image replacement:"
+      cat $(Build.SourcesDirectory)/deployment.yaml
+    displayName: Show deployment.yaml before sed
+
+  - script: |
       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
     displayName: Update deployment image
+
+  - script: |
+      echo "Showing deployment.yaml AFTER image replacement:"
+      cat $(Build.SourcesDirectory)/deployment.yaml
+    displayName: Show deployment.yaml after sed
 
   - task: KubernetesManifest@0
     displayName: Deploy to AKS
     inputs:
       action: deploy
-      kubernetesServiceConnection: 'aks1'   # Your Kubernetes service connection name
+      kubernetesServiceConnection: 'aks1'
       namespace: default
       manifests: |
         $(Build.SourcesDirectory)/deployment.yaml
         $(Build.SourcesDirectory)/service.yaml
+
 
 
 
