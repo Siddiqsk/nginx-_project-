@@ -83,6 +83,51 @@
 
 
 
+# trigger:
+#   branches:
+#     include:
+#       - main
+
+# variables:
+#   dockerHubRepo: siddiqkesavansk/nginx
+#   imageTag: latest
+
+# jobs:
+# - job: BuildPushAndDeploy
+#   displayName: Build, Push Docker Image and Deploy to Kubernetes
+#   pool:
+#     name: agentpool1   # Self-hosted agent pool with Docker and kubectl installed/configured
+
+#   steps:
+#   # Step 0: Checkout repo (Dockerfile is in repo)
+#   - checkout: self
+
+#   # Step 1: Enable Buildx (avoids legacy builder warning)
+#   - script: |
+#        docker buildx create --use
+#        docker buildx inspect --bootstrap
+
+#     displayName: Enable Docker Buildx
+
+#   # Step 2: Build and push Docker image using Dockerfile from the repo root
+#   - script: |
+#       docker buildx build \
+#         --platform linux/amd64 \
+#         -f $(Build.SourcesDirectory)/Dockerfile \
+#         -t $(dockerHubRepo):$(imageTag) \
+#         --push $(Build.SourcesDirectory)
+#     displayName: Build and Push Docker Image with Buildx
+
+#   # Step 3: Update manifests and deploy to Kubernetes
+#   - script: |
+#       # Update deployment.yaml image to the new image
+#       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
+
+#       # Apply deployment and service manifests
+#       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
+#       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
+#     displayName: Deploy updated manifests to Kubernetes
+
 trigger:
   branches:
     include:
@@ -96,20 +141,28 @@ jobs:
 - job: BuildPushAndDeploy
   displayName: Build, Push Docker Image and Deploy to Kubernetes
   pool:
-    name: agentpool1   # Self-hosted agent pool with Docker and kubectl installed/configured
+    name: agentpool1
 
   steps:
-  # Step 0: Checkout repo (Dockerfile is in repo)
   - checkout: self
 
-  # Step 1: Enable Buildx (avoids legacy builder warning)
   - script: |
-       docker buildx create --use
-       docker buildx inspect --bootstrap
+      # Install Docker CLI & Buildx plugin
+      curl -fsSL https://get.docker.com -o get-docker.sh
+      sh get-docker.sh
+      mkdir -p ~/.docker/cli-plugins
+      curl -L https://github.com/docker/buildx/releases/latest/download/buildx-linux.amd64 -o ~/.docker/cli-plugins/docker-buildx
+      chmod +x ~/.docker/cli-plugins/docker-buildx
 
+      docker --version
+      docker buildx version
+    displayName: Install Docker and Buildx CLI
+
+  - script: |
+      docker buildx create --use
+      docker buildx inspect --bootstrap
     displayName: Enable Docker Buildx
 
-  # Step 2: Build and push Docker image using Dockerfile from the repo root
   - script: |
       docker buildx build \
         --platform linux/amd64 \
@@ -118,13 +171,8 @@ jobs:
         --push $(Build.SourcesDirectory)
     displayName: Build and Push Docker Image with Buildx
 
-  # Step 3: Update manifests and deploy to Kubernetes
   - script: |
-      # Update deployment.yaml image to the new image
       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
-
-      # Apply deployment and service manifests
       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
     displayName: Deploy updated manifests to Kubernetes
-
