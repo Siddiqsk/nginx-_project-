@@ -165,8 +165,8 @@ jobs:
     name: agentpool1
 
   steps:
-   - script: |
-       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
+  - script: |
+      sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
      displayName: Update deployment image
     
   steps:
