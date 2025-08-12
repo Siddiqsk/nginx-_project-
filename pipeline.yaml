@@ -167,9 +167,8 @@ jobs:
   steps:
   - script: |
       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
-     displayName: Update deployment image
-    
-  steps:
+    displayName: Update deployment image
+
   - task: KubernetesManifest@0
     displayName: Deploy to AKS
     inputs:
@@ -179,5 +178,6 @@ jobs:
       manifests: |
         $(Build.SourcesDirectory)/deployment.yaml
         $(Build.SourcesDirectory)/service.yaml
+
 
 
