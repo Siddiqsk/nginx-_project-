@@ -160,15 +160,32 @@ jobs:
         $(imageTag)
 
   # Deploy to Kubernetes
-  - task: Kubectl@1
-    inputs:
-      connectionType: 'Kubernetes Service Connection'
-      kubernetesServiceEndpoint: '<your-k8s-service-connection-name>'
-      command: apply
-      useConfigurationFile: true
-      configuration: |
-        $(Build.SourcesDirectory)/deployment.yaml
-        $(Build.SourcesDirectory)/service.yaml
+  # - task: Kubectl@1
+  #   inputs:
+  #     connectionType: 'Kubernetes Service Connection'
+  #     kubernetesServiceEndpoint: '<your-k8s-service-connection-name>'
+  #     command: apply
+  #     useConfigurationFile: true
+  #     configuration: |
+  #       $(Build.SourcesDirectory)/deployment.yaml
+  #       $(Build.SourcesDirectory)/service.yaml
+  #   displayName: Deploy to Kubernetes
+  - stage: Deploy
     displayName: Deploy to Kubernetes
-
+    dependsOn: BuildAndPush
+    jobs:
+      - job: DeployToK8s
+        displayName: Deploy to AKS
+        pool:
+          name: agentpool1  
+        steps:
+          - task: KubernetesManifest@0
+            displayName: Deploy to AKS
+            inputs:
+              action: deploy
+              kubernetesServiceConnection: 'aks1'
+              namespace: default
+              manifests: |
+                $(Build.SourcesDirectory)/deployment.yaml
+                $(Build.SourcesDirectory)/service.yaml
 
