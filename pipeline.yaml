@@ -170,7 +170,7 @@ jobs:
   #       $(Build.SourcesDirectory)/deployment.yaml
   #       $(Build.SourcesDirectory)/service.yaml
   #   displayName: Deploy to Kubernetes
-  - stage: Deploy
+  - task: Deploy
     displayName: Deploy to Kubernetes
     dependsOn: BuildAndPush
     jobs:
