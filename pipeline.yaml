@@ -140,42 +140,39 @@ variables:
   imageTag: latest
 
 jobs:
-- job: BuildPushAndDeploy
-  displayName: Build, Push Docker Image and Deploy to Kubernetes
+- job: BuildPushAndPush
+  displayName: Build and Push Docker Image
   pool:
     name: agentpool1
 
   steps:
   - checkout: self
 
-  # Build and push Docker image using Docker Hub service connection
   - task: Docker@2
     displayName: Build and Push Docker Image
     inputs:
-      containerRegistry: 'dockerhub'    # Replace with your service connection name exactly
+      containerRegistry: 'dockerhub'    # Your Docker Hub service connection name
       repository: $(dockerHubRepo)
       command: buildAndPush
       Dockerfile: Dockerfile
       tags: |
         $(imageTag)
 
- 
-  - task: Deploy
-    displayName: Deploy to Kubernetes
-    dependsOn: BuildAndPush
-  jobs:
-    - job: DeployToK8s
-      displayName: Deploy to AKS
-      pool:
-         name: agentpool1  
-      steps:
-        - task: KubernetesManifest@0
-          displayName: Deploy to AKS
-          inputs:
-            action: deploy
-            kubernetesServiceConnection: 'aks1'
-            namespace: default
-           manifests: |
-            $(Build.SourcesDirectory)/deployment.yaml
-            $(Build.SourcesDirectory)/service.yaml
+- job: DeployToK8s
+  displayName: Deploy to Kubernetes
+  dependsOn: BuildPushAndPush
+  pool:
+    name: agentpool1
+
+  steps:
+  - task: KubernetesManifest@0
+    displayName: Deploy to AKS
+    inputs:
+      action: deploy
+      kubernetesServiceConnection: 'aks1'   # Your Kubernetes service connection name
+      namespace: default
+      manifests: |
+        $(Build.SourcesDirectory)/deployment.yaml
+        $(Build.SourcesDirectory)/service.yaml
+
 
