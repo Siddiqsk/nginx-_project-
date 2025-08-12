@@ -83,9 +83,6 @@
 
 
 
-
-
-
 trigger:
   branches:
     include:
@@ -99,18 +96,28 @@ jobs:
 - job: BuildPushAndDeploy
   displayName: Build, Push Docker Image and Deploy to Kubernetes
   pool:
-    name: agentpool1   # Your agent pool with Docker and kubectl installed/configured
-  steps:
-  - task: Docker@2
-    displayName: Build and push Docker image
-    inputs:
-      containerRegistry: 'dockerhub'   # Your Docker Hub service connection
-      repository: $(dockerHubRepo)
-      command: buildAndPush
-      Dockerfile: Dockerfile
-      tags: |
-        $(imageTag)
+    name: agentpool1   # Self-hosted agent pool with Docker and kubectl installed/configured
 
+  steps:
+  # Step 0: Checkout repo (Dockerfile is in repo)
+  - checkout: self
+
+  # Step 1: Enable Buildx (avoids legacy builder warning)
+  - script: |
+      docker buildx create --use
+      docker buildx inspect --bootstrap
+    displayName: Enable Docker Buildx
+
+  # Step 2: Build and push Docker image using Dockerfile from the repo root
+  - script: |
+      docker buildx build \
+        --platform linux/amd64 \
+        -f $(Build.SourcesDirectory)/Dockerfile \
+        -t $(dockerHubRepo):$(imageTag) \
+        --push $(Build.SourcesDirectory)
+    displayName: Build and Push Docker Image with Buildx
+
+  # Step 3: Update manifests and deploy to Kubernetes
   - script: |
       # Update deployment.yaml image to the new image
       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
@@ -119,3 +126,4 @@ jobs:
       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
     displayName: Deploy updated manifests to Kubernetes
+
