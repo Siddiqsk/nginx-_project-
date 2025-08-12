@@ -128,7 +128,6 @@
 #       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
 #     displayName: Deploy updated manifests to Kubernetes
 
-
 - job: DeployToK8s
   displayName: Deploy to Kubernetes
   dependsOn: BuildPushAndPush
@@ -159,6 +158,7 @@
       manifests: |
         $(Build.SourcesDirectory)/deployment.yaml
         $(Build.SourcesDirectory)/service.yaml
+
 
 
 
