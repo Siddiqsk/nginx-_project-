@@ -164,6 +164,11 @@ jobs:
   pool:
     name: agentpool1
 
+ steps:
+  - script: |
+      sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
+    displayName: Update deployment image
+    
   steps:
   - task: KubernetesManifest@0
     displayName: Deploy to AKS
