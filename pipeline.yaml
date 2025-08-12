@@ -166,7 +166,7 @@ jobs:
 
   steps:
   - script: |
-      sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
+      sed -i "s|image:.*|image: $(siddiqkesavansk/nginx):$(latest)|" $(Build.SourcesDirectory)/deployment.yaml
     displayName: Update deployment image
 
   - task: KubernetesManifest@0
