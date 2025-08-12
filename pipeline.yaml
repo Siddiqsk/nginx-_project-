@@ -104,8 +104,8 @@ jobs:
 
   # Step 1: Enable Buildx (avoids legacy builder warning)
   - script: |
-   docker buildx create --use
-   docker buildx inspect --bootstrap
+       docker buildx create --use
+       docker buildx inspect --bootstrap
 
     displayName: Enable Docker Buildx
 
