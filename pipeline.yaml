@@ -183,6 +183,10 @@ jobs:
       manifests: |
         $(Build.SourcesDirectory)/deployment.yaml
         $(Build.SourcesDirectory)/service.yaml
+      containers:
+        $(imageFullName)
+
+      
 
 
 
