@@ -135,7 +135,7 @@ trigger:
 
 variables:
   dockerHubRepo: siddiqkesavansk/nginx
-  imageTag: latest
+  imageTag: v1
 
 jobs:
 - job: BuildPushAndPush
