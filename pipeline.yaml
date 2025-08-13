@@ -1,195 +1,73 @@
-# # trigger:
-# #   branches:
-# #     include:
-# #       - main
- 
-# # stages:
-# #   - stage: Deploy
-# #     jobs:
-# #       - job: DeployToK8s
-# #         displayName: Deploy to Kubernetes
-# #         pool:
-# #           name: agentpool1
-# #         steps:
-# #           - script: |
-# #               echo "Debugging files:"
-# #               ls -l $(Build.SourcesDirectory)
-# #             displayName: "List Source Directory"
- 
-# #           - task: KubernetesManifest@0
-# #             displayName: Deploy to AKS
-# #             inputs:
-# #               action: deploy
-# #               kubernetesServiceConnection: 'aks1'
-# #               namespace: default
-# #               manifests: |
-# #                  $(Build.SourcesDirectory)/deployment.yaml 
-# #                  $(Build.SourcesDirectory)/service.yaml
+pipeline {
+    agent any
 
+    environment {
+        REGISTRY = "docker.io/siddiqkesavansk"             // Docker registry
+        IMAGE_NAME = "nginx"                               // Image name
+        DOCKER_CREDENTIALS_ID = "dockerhub"               // Docker Hub creds
+        KUBECONFIG_CREDENTIALS_ID = "kubernetes"          // K8s kubeconfig creds
+        NAMESPACE = "default"                              // Kubernetes namespace
+        DEPLOYMENT_NAME = "angular-deployment"            // must match metadata.name in deployment.yaml
+        CONTAINER_NAME = "myapp-container"                // Container name in YAML
+        GIT_REPO = "https://github.com/Siddiqsk/nginx-_project-.git" // Git repo URL
+        GIT_BRANCH = "main"                                // Git branch
+    }
 
+    stages {
 
+        stage('Checkout from Git') {
+            steps {
+                git branch: env.GIT_BRANCH, url: env.GIT_REPO
+                script {
+                    GIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    IMAGE_TAG = "${GIT_SHORT}-${env.BUILD_NUMBER}"
+                    IMAGE = "${env.REGISTRY}/${env.IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "Image will be: ${IMAGE}"
+                }
+            }
+        }
 
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                        echo "Building Docker image from Dockerfile in repo..."
+                        docker build -t ${IMAGE} -f Dockerfile .
+                    """
+                }
+            }
+        }
 
-                
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIALS_ID,
+                                                  usernameVariable: 'DOCKER_USER',
+                                                  passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
+                        docker push ${IMAGE}
+                    """
+                }
+            }
+        }
 
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
+                    script {
+                        sh """
+                            export KUBECONFIG=\$KUBECONFIG_FILE
 
-# trigger:
-#   branches:
-#     include:
-#       - main
+                            # Update the container image dynamically
+                            kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${IMAGE}
 
-# variables:
-#   dockerHubRepo: siddiqkesavansk/nginx
-#   imageTag: latest
+                            # Wait for rollout to finish
+                            kubectl rollout status deployment/${DEPLOYMENT_NAME} --timeout=120s
+                        """
+                    }
+                }
+            }
+        }
 
-# jobs:
-# - job: BuildAndPush
-#   displayName: Build & Push Docker Image to Docker Hub
-#   pool:
-#     vmImage: 'ubuntu-latest'
-#   steps:
-#   - task: Docker@2
-#     displayName: Build and push Docker image
-#     inputs:
-#       containerRegistry: 'dockerhub'   # Your Docker Hub service connection in Azure DevOps
-#       repository: $(dockerHubRepo)
-#       command: buildAndPush
-#       Dockerfile: Dockerfile
-#       tags: |
-#         $(imageTag)
-
-# - job: DeployToK8s
-#   dependsOn: BuildAndPush
-#   displayName: Deploy to Kubernetes
-#   pool:
-#     name: agentpool1   # Your self-hosted or hosted agent pool with kubectl configured
-#   steps:
-#   - script: |
-#       # Update deployment.yaml image to the new image
-#       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
-
-#       # Apply deployment and service
-#       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
-#       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
-#     displayName: Deploy updated manifests to Kubernetes
-
-
-
-
-
-
-
-
-
-
-
-# trigger:
-#   branches:
-#     include:
-#       - main
-
-# variables:
-#   dockerHubRepo: siddiqkesavansk/nginx
-#   imageTag: latest
-
-# jobs:
-# - job: BuildPushAndDeploy
-#   displayName: Build, Push Docker Image and Deploy to Kubernetes
-#   pool:
-#     name: agentpool1   # Self-hosted agent pool with Docker and kubectl installed/configured
-
-#   steps:
-#   # Step 0: Checkout repo (Dockerfile is in repo)
-#   - checkout: self
-
-#   # Step 1: Enable Buildx (avoids legacy builder warning)
-#   - script: |
-#        docker buildx create --use
-#        docker buildx inspect --bootstrap
-
-#     displayName: Enable Docker Buildx
-
-#   # Step 2: Build and push Docker image using Dockerfile from the repo root
-#   - script: |
-#       docker buildx build \
-#         --platform linux/amd64 \
-#         -f $(Build.SourcesDirectory)/Dockerfile \
-#         -t $(dockerHubRepo):$(imageTag) \
-#         --push $(Build.SourcesDirectory)
-#     displayName: Build and Push Docker Image with Buildx
-
-#   # Step 3: Update manifests and deploy to Kubernetes
-#   - script: |
-#       # Update deployment.yaml image to the new image
-#       sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
-
-#       # Apply deployment and service manifests
-#       kubectl apply -f $(Build.SourcesDirectory)/deployment.yaml
-#       kubectl apply -f $(Build.SourcesDirectory)/service.yaml
-#     displayName: Deploy updated manifests to Kubernetes
-
-trigger:
-  branches:
-    include:
-      - main
-
-variables:
-  dockerHubRepo: siddiqkesavansk/nginx
-  imageTag: v1
-
-jobs:
-- job: BuildPushAndPush
-  displayName: Build and Push Docker Image
-  pool:
-    name: agentpool1
-  steps:
-  - checkout: self
-  - task: Docker@2
-    displayName: Build and Push Docker Image
-    inputs:
-      containerRegistry: 'dockerhub'
-      repository: $(dockerHubRepo)
-      command: buildAndPush
-      Dockerfile: Dockerfile
-      tags: |
-        $(imageTag)
-
-- job: DeployToK8s
-  displayName: Deploy to Kubernetes
-  dependsOn: BuildPushAndPush
-  pool:
-    name: agentpool1
-  steps:
-  - script: |
-      echo "Showing deployment.yaml BEFORE image replacement:"
-      cat $(Build.SourcesDirectory)/deployment.yaml
-    displayName: Show deployment.yaml before sed
-
-  - script: |
-      sed -i "s|image:.*|image: $(dockerHubRepo):$(imageTag)|" $(Build.SourcesDirectory)/deployment.yaml
-    displayName: Update deployment image
-
-  - script: |
-      echo "Showing deployment.yaml AFTER image replacement:"
-      cat $(Build.SourcesDirectory)/deployment.yaml
-    displayName: Show deployment.yaml after sed
-
-  - task: KubernetesManifest@1
-    displayName: Deploy to AKS
-    inputs:
-      action: deploy
-      kubernetesServiceConnection: 'aks1'
-      namespace: default
-      manifests: |
-        $(Build.SourcesDirectory)/deployment.yaml
-        $(Build.SourcesDirectory)/service.yaml
-      containers:
-        $(imageFullName)
-
-      
-
-
-
-
-
-
+    }
+}
