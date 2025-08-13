@@ -13,8 +13,8 @@ spec:
         app: angular
     spec:
       containers:
-      - name: angular-container
-        image: siddiqkesavansk/nginx:v1
+      - name: myapp-container
+        image: REPLACE_IMAGE
         ports:
         - containerPort: 80 
 
