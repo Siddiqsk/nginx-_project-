@@ -89,8 +89,8 @@ trigger:
       - main
 variables:
   imageName: 'apache-app'
-  acrName: 'testingac'
-  acrLoginServer: 'testingac.azurecr.io'
+  acrName: 'siddiqconainer'
+  acrLoginServer: 'siddiqconainer.azurecr.io'
   tag: '$(Build.BuildId)'
   imageFullName: '$(acrLoginServer)/$(imageName):$(tag)'
 stages:
@@ -99,7 +99,7 @@ stages:
     jobs:
       - job: BuildAndPush
         pool:
-          name: Default
+          name: me
         steps:
           - checkout: self
           - task: Docker@2
