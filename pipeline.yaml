@@ -99,7 +99,7 @@ stages:
     jobs:
       - job: BuildAndPush
         pool:
-          name: me
+          name: nodepool
         steps:
           - checkout: self
           - task: Docker@2
