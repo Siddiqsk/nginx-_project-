@@ -1,73 +1,122 @@
-pipeline {
-    agent any
+# pipeline {
+#     agent any
 
-    environment {
-        REGISTRY = "docker.io/siddiqkesavansk"             // Docker registry
-        IMAGE_NAME = "nginx"                               // Image name
-        DOCKER_CREDENTIALS_ID = "dockerhub"               // Docker Hub creds
-        KUBECONFIG_CREDENTIALS_ID = "kubeconfig"          // K8s kubeconfig creds
-        NAMESPACE = "default"                              // Kubernetes namespace
-        DEPLOYMENT_NAME = "angular-deployment"            // must match metadata.name in deployment.yaml
-        CONTAINER_NAME = "myapp-container"                // Container name in YAML
-        GIT_REPO = "https://github.com/Siddiqsk/nginx-_project-.git" // Git repo URL
-        GIT_BRANCH = "main"                                // Git branch
-    }
+#     environment {
+#         REGISTRY = "docker.io/siddiqkesavansk"             // Docker registry
+#         IMAGE_NAME = "nginx"                               // Image name
+#         DOCKER_CREDENTIALS_ID = "dockerhub"               // Docker Hub creds
+#         KUBECONFIG_CREDENTIALS_ID = "kubeconfig"          // K8s kubeconfig creds
+#         NAMESPACE = "default"                              // Kubernetes namespace
+#         DEPLOYMENT_NAME = "angular-deployment"            // must match metadata.name in deployment.yaml
+#         CONTAINER_NAME = "myapp-container"                // Container name in YAML
+#         GIT_REPO = "https://github.com/Siddiqsk/nginx-_project-.git" // Git repo URL
+#         GIT_BRANCH = "main"                                // Git branch
+#     }
 
-    stages {
+#     stages {
 
-        stage('Checkout from Git') {
-            steps {
-                git branch: env.GIT_BRANCH, url: env.GIT_REPO
-                script {
-                    GIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    IMAGE_TAG = "${GIT_SHORT}-${env.BUILD_NUMBER}"
-                    IMAGE = "${env.REGISTRY}/${env.IMAGE_NAME}:${IMAGE_TAG}"
-                    echo "Image will be: ${IMAGE}"
-                }
-            }
-        }
+#         stage('Checkout from Git') {
+#             steps {
+#                 git branch: env.GIT_BRANCH, url: env.GIT_REPO
+#                 script {
+#                     GIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+#                     IMAGE_TAG = "${GIT_SHORT}-${env.BUILD_NUMBER}"
+#                     IMAGE = "${env.REGISTRY}/${env.IMAGE_NAME}:${IMAGE_TAG}"
+#                     echo "Image will be: ${IMAGE}"
+#                 }
+#             }
+#         }
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    sh """
-                        echo "Building Docker image from Dockerfile in repo..."
-                        docker build -t ${IMAGE} -f Dockerfile .
-                    """
-                }
-            }
-        }
+#         stage('Build Docker Image') {
+#             steps {
+#                 script {
+#                     sh """
+#                         echo "Building Docker image from Dockerfile in repo..."
+#                         docker build -t ${IMAGE} -f Dockerfile .
+#                     """
+#                 }
+#             }
+#         }
 
-        stage('Push Docker Image') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIALS_ID,
-                                                  usernameVariable: 'DOCKER_USER',
-                                                  passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-                        docker push ${IMAGE}
-                    """
-                }
-            }
-        }
+#         stage('Push Docker Image') {
+#             steps {
+#                 withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIALS_ID,
+#                                                   usernameVariable: 'DOCKER_USER',
+#                                                   passwordVariable: 'DOCKER_PASS')]) {
+#                     sh """
+#                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
+#                         docker push ${IMAGE}
+#                     """
+#                 }
+#             }
+#         }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
-                    script {
-                        sh """
-                            export KUBECONFIG=\$KUBECONFIG_FILE
+#         stage('Deploy to Kubernetes') {
+#             steps {
+#                 withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIALS_ID, variable: 'KUBECONFIG_FILE')]) {
+#                     script {
+#                         sh """
+#                             export KUBECONFIG=\$KUBECONFIG_FILE
 
-                            # Update the container image dynamically
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${IMAGE}
+#                             # Update the container image dynamically
+#                             kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${IMAGE}
 
-                            # Wait for rollout to finish
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} --timeout=120s
-                        """
-                    }
-                }
-            }
-        }
+#                             # Wait for rollout to finish
+#                             kubectl rollout status deployment/${DEPLOYMENT_NAME} --timeout=120s
+#                         """
+#                     }
+#                 }
+#             }
+#         }
 
-    }
-}
+#     }
+# }
+
+
+
+
+
+
+
+
+
+
+
+
+trigger:
+  branches:
+    include:
+      - main
+variables:
+  imageName: 'apache-app'
+  acrName: 'testingac'
+  acrLoginServer: 'testingac.azurecr.io'
+  tag: '$(Build.BuildId)'
+  imageFullName: '$(acrLoginServer)/$(imageName):$(tag)'
+stages:
+  - stage: BuildAndPush
+    displayName: Build and Push Docker Image
+    jobs:
+      - job: BuildAndPush
+        pool:
+          name: Default
+        steps:
+          - checkout: self
+          - task: Docker@2
+            displayName: Build and Push to ACR
+            inputs:
+              containerRegistry: 'container'   # <-- your ACR service connection name
+              repository: 'apache-app'
+              command: 'buildAndPush'
+              Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+              tags: |
+                $(Build.BuildId)
+          - script: |
+              mkdir -p $(Build.ArtifactStagingDirectory)/manifests
+              cp $(Build.SourcesDirectory)/deployment.yaml $(Build.ArtifactStagingDirectory)/manifests/
+            displayName: "Prepare Kubernetes manifests"
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish manifests"
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)/manifests"
+              artifact: "manifests"
